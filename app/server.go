@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -21,9 +23,49 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	_, err = l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+	defer l.Close()
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("cannot accept a connection")
+		}
+		// Handle the connection in a new goroutine
+		go handleConnection(conn)
+	}
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	fmt.Println("Connected to client:", conn.RemoteAddr())
+
+	// Read incoming data
+	reader := bufio.NewReader(conn)
+
+	for {
+		request, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading from connection:", err)
+			return
+		}
+		request = strings.TrimSpace(request)
+		fmt.Println("Received request:", request)
+
+		// Process the request and create a response
+		var response string
+		switch request {
+		case "PING":
+			response = "+PONG\r\n"
+		default:
+			response = "Unknown request\n"
+		}
+		// Send the response back to the client
+		_, err = conn.Write([]byte(response))
+		if err != nil {
+			fmt.Println("Error sending response:", err)
+			return
+		}
+
 	}
 }
