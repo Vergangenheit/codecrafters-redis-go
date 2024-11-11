@@ -49,6 +49,7 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error reading from connection:", err)
 			return
 		}
+		fmt.Println("read request string:", request)
 		request = strings.TrimSpace(request)
 		fmt.Println("Received request:", request)
 
@@ -58,7 +59,7 @@ func handleConnection(conn net.Conn) {
 		case "PING":
 			response = "+PONG\r\n"
 		default:
-			response = "Unknown request\n"
+			continue
 		}
 		// Send the response back to the client
 		_, err = conn.Write([]byte(response))
@@ -66,6 +67,6 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error sending response:", err)
 			return
 		}
-
 	}
+
 }
