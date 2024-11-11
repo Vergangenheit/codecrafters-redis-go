@@ -43,25 +43,30 @@ func handleConnection(conn net.Conn) {
 	// Read incoming data
 	reader := bufio.NewReader(conn)
 
-	request, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading from connection:", err)
-		return
-	}
-	request = strings.TrimSpace(request)
-	fmt.Println("Received request:", request)
+	for {
+		request, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading from connection:", err)
+			return
+		}
+		fmt.Println("read request string:", request)
+		request = strings.TrimSpace(request)
+		fmt.Println("Received request:", request)
 
-	// Process the request and create a response
-	var response string
-	switch request {
-	default:
-		response = "+PONG\r\n"
-	}
-	// Send the response back to the client
-	_, err = conn.Write([]byte(response))
-	if err != nil {
-		fmt.Println("Error sending response:", err)
-		return
+		// Process the request and create a response
+		var response string
+		switch request {
+		case "PING":
+			response = "+PONG\r\n"
+		default:
+			continue
+		}
+		// Send the response back to the client
+		_, err = conn.Write([]byte(response))
+		if err != nil {
+			fmt.Println("Error sending response:", err)
+			return
+		}
 	}
 
 }
