@@ -60,17 +60,9 @@ func handleConnection(conn net.Conn) {
 		if chunk == "\n" {
 			break
 		}
-		fmt.Println("read request chunk:", chunk)
 		chunk = strings.TrimSpace(chunk)
 		fmt.Println("Received chunk:", chunk)
 
-		// // Process the request and create a response
-		// switch chunk {
-		// case "PING":
-		// 	response = "+PONG\r\n"
-		// default:
-		// 	continue
-		// }
 		request = append(request, chunk)
 
 	}
