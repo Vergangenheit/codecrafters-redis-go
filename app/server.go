@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -43,30 +44,39 @@ func handleConnection(conn net.Conn) {
 	// Read incoming data
 	reader := bufio.NewReader(conn)
 
+	var response string
+
 	for {
-		request, err := reader.ReadString('\n')
+		chunk, err := reader.ReadString('\n')
 		if err != nil {
+			if err == io.EOF {
+				fmt.Println("reached EOF, exiting loop")
+				break
+			}
 			fmt.Println("Error reading from connection:", err)
 			return
 		}
-		fmt.Println("read request string:", request)
-		request = strings.TrimSpace(request)
+		if chunk == "\n" {
+			break
+		}
+		fmt.Println("read request string:", chunk)
+		request := strings.TrimSpace(chunk)
 		fmt.Println("Received request:", request)
 
 		// Process the request and create a response
-		var response string
 		switch request {
 		case "PING":
 			response = "+PONG\r\n"
 		default:
 			continue
 		}
-		// Send the response back to the client
-		_, err = conn.Write([]byte(response))
-		if err != nil {
-			fmt.Println("Error sending response:", err)
-			return
-		}
+
+	}
+	// Send the response back to the client
+	_, err := conn.Write([]byte(response))
+	if err != nil {
+		fmt.Println("Error sending response:", err)
+		return
 	}
 
 }
