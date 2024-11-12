@@ -19,8 +19,8 @@ func main() {
 	defer conn.Close()
 
 	// The slice of bytes to send
-	// message := []byte("*2\r\n$4\r\nECHO\r\n$5\r\napple\r\n")
-	message := []byte("*1\r\n$4\r\nPING\r\n\n")
+	message := []byte("*2\r\n$4\r\nECHO\r\n$5\r\napple\r\n\n")
+	// message := []byte("*1\r\n$4\r\nPING\r\n\n")
 	// Send the message to the server
 	_, err = conn.Write(message)
 	if err != nil {

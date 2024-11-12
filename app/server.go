@@ -44,6 +44,7 @@ func handleConnection(conn net.Conn) {
 	// Read incoming data
 	reader := bufio.NewReader(conn)
 
+	request := []string{}
 	var response string
 
 	for {
@@ -59,18 +60,25 @@ func handleConnection(conn net.Conn) {
 		if chunk == "\n" {
 			break
 		}
-		fmt.Println("read request string:", chunk)
-		request := strings.TrimSpace(chunk)
-		fmt.Println("Received request:", request)
+		fmt.Println("read request chunk:", chunk)
+		chunk = strings.TrimSpace(chunk)
+		fmt.Println("Received chunk:", chunk)
 
-		// Process the request and create a response
-		switch request {
-		case "PING":
-			response = "+PONG\r\n"
-		default:
-			continue
-		}
+		// // Process the request and create a response
+		// switch chunk {
+		// case "PING":
+		// 	response = "+PONG\r\n"
+		// default:
+		// 	continue
+		// }
+		request = append(request, chunk)
 
+	}
+	if isPing(request) {
+		response = "+PONG\r\n"
+	}
+	if ok, resp := isEcho(request); ok {
+		response = fmt.Sprintf("%s\r\n", resp)
 	}
 	// Send the response back to the client
 	_, err := conn.Write([]byte(response))
@@ -79,4 +87,22 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
+}
+
+func isPing(request []string) bool {
+	for _, r := range request {
+		if r == "PING" {
+			return true
+		}
+	}
+	return false
+}
+
+func isEcho(request []string) (bool, string) {
+	for i, r := range request {
+		if r == "ECHO" {
+			return true, request[i+2]
+		}
+	}
+	return false, ""
 }
