@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 )
@@ -38,23 +39,28 @@ func handleConnection(conn net.Conn) {
 
 	fmt.Println("Connected to client:", conn.RemoteAddr())
 
-	var response string
-	// parse request
-	request, err := RequestParser(conn)
-	if err != nil {
-		fmt.Printf("Cannot parse the request %v", err)
-	}
-	if isPing(request) {
-		response = "+PONG\r\n"
-	}
-	if ok, resp := isEcho(request); ok {
-		response = fmt.Sprintf("+%s\r\n", resp)
-	}
-	// Send the response back to the client
-	_, err = conn.Write([]byte(response))
-	if err != nil {
-		fmt.Println("Error sending response:", err)
-		return
+	for {
+		var response string
+		// parse request
+		request, err := RequestParser(conn)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Printf("Cannot parse the request %v", err)
+		}
+		if isPing(request) {
+			response = "+PONG\r\n"
+		}
+		if ok, resp := isEcho(request); ok {
+			response = fmt.Sprintf("+%s\r\n", resp)
+		}
+		// Send the response back to the client
+		_, err = conn.Write([]byte(response))
+		if err != nil {
+			fmt.Println("Error sending response:", err)
+			return
+		}
 	}
 
 }
@@ -65,7 +71,7 @@ func isPing(request *Request) bool {
 
 func isEcho(request *Request) (bool, string) {
 	if request.Command == ECHO {
-		return true, request.Args[1]
+		return true, request.Args[0]
 	}
 	return false, ""
 }

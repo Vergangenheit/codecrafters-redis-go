@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 )
@@ -33,36 +31,40 @@ type Request struct {
 }
 
 func RequestParser(conn net.Conn) (*Request, error) {
+	fmt.Println("parsing request")
 	// buffer the conn
-	buffer := bufio.NewReader(conn)
+	buffer := make([]byte, 1024)
 
 	req := &Request{}
 	// start reading chunks delimited by newline byte
-	for i := 0; i < 5; i++ {
-		chunk, err := buffer.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println("reached EOF, exiting loop")
-				break
-			}
-			fmt.Printf("Error reading from connection %v", err)
-			return nil, err
-		}
-		req.nBytes++
 
-		// I'm expecting command at the third byte postion excluding whitespaces and newline bytes
-		chunk = strings.TrimSpace(chunk)
-		if i == 2 {
-			comm, err := toCommand(chunk)
-			if err != nil {
-				return nil, err
-			}
-			req.Command = comm
-		}
-		if i > 2 {
-			// register args
-			req.Args = append(req.Args, chunk)
-		}
+	n, err := conn.Read(buffer)
+	if err != nil {
+		return nil, err
 	}
+	req.nBytes = n
+	parsedArray := parseBulkBytes(buffer)
+	comm, err := toCommand(parsedArray[2])
+	if err != nil {
+		return nil, fmt.Errorf("command not recognized %s", parsedArray[2])
+	}
+	req.Command = comm
+	if len(parsedArray) > 5 {
+		req.Args = parsedArray[4:]
+	}
+
 	return req, nil
+}
+
+func parseBulkBytes(input []byte) []string {
+	// Convert byte slice to string
+	str := string(input)
+
+	// Trim any trailing \r\n to prevent an extra empty element after splitting
+	str = strings.TrimSuffix(str, "\r\n")
+
+	// Split the string by "\r\n"
+	parts := strings.Split(str, "\r\n")
+
+	return parts
 }
