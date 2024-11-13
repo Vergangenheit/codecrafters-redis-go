@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	receiveBuf = 1024
+)
+
 type Command string
 
 const (
@@ -33,7 +37,7 @@ type Request struct {
 func RequestParser(conn net.Conn) (*Request, error) {
 	fmt.Println("parsing request")
 	// buffer the conn
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, receiveBuf)
 
 	req := &Request{}
 	// start reading chunks delimited by newline byte
