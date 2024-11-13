@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
-	"strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -33,7 +32,6 @@ func main() {
 		// Handle the connection in a new goroutine
 		go handleConnection(conn)
 	}
-	return false, ""
 }
 
 func handleConnection(conn net.Conn) {
@@ -41,26 +39,21 @@ func handleConnection(conn net.Conn) {
 
 	fmt.Println("Connected to client:", conn.RemoteAddr())
 
-	// Read incoming data
-	reader := bufio.NewReader(conn)
-
 	for {
-		request, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading from connection:", err)
-			return
-		}
-		fmt.Println("read request string:", request)
-		request = strings.TrimSpace(request)
-		fmt.Println("Received request:", request)
-
-		// Process the request and create a response
 		var response string
-		switch request {
-		case "PING":
+		// parse request
+		request, err := RequestParser(conn)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Printf("Cannot parse the request %v", err)
+		}
+		if isPing(request) {
 			response = "+PONG\r\n"
-		default:
-			continue
+		}
+		if ok, resp := isEcho(request); ok {
+			response = fmt.Sprintf("+%s\r\n", resp)
 		}
 		// Send the response back to the client
 		_, err = conn.Write([]byte(response))
@@ -70,4 +63,15 @@ func handleConnection(conn net.Conn) {
 		}
 	}
 
+}
+
+func isPing(request *Request) bool {
+	return request.Command == PING
+}
+
+func isEcho(request *Request) (bool, string) {
+	if request.Command == ECHO {
+		return true, request.Args[0]
+	}
+	return false, ""
 }
