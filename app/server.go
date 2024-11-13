@@ -33,6 +33,7 @@ func main() {
 		// Handle the connection in a new goroutine
 		go handleConnection(conn)
 	}
+	return false, ""
 }
 
 func handleConnection(conn net.Conn) {
