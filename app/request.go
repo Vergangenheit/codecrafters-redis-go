@@ -16,6 +16,7 @@ const (
 	PING Command = "PING"
 	ECHO Command = "ECHO"
 	SET  Command = "SET"
+	GET  Command = "GET"
 )
 
 func toCommand(str string) (Command, error) {
@@ -26,21 +27,10 @@ func toCommand(str string) (Command, error) {
 		return ECHO, nil
 	case "SET":
 		return SET, nil
+	case "GET":
+		return GET, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
-	}
-}
-
-func (c *Command) toStr() string {
-	switch *c {
-	case PING:
-		return "PING"
-	case ECHO:
-		return "ECHO"
-	case SET:
-		return "SET"
-	default:
-		return ""
 	}
 }
 
