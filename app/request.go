@@ -15,6 +15,7 @@ type Command string
 const (
 	PING Command = "PING"
 	ECHO Command = "ECHO"
+	SET  Command = "SET"
 )
 
 func toCommand(str string) (Command, error) {
@@ -23,8 +24,23 @@ func toCommand(str string) (Command, error) {
 		return PING, nil
 	case "ECHO":
 		return ECHO, nil
+	case "SET":
+		return SET, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
+	}
+}
+
+func (c *Command) toStr() string {
+	switch *c {
+	case PING:
+		return "PING"
+	case ECHO:
+		return "ECHO"
+	case SET:
+		return "SET"
+	default:
+		return ""
 	}
 }
 
@@ -53,9 +69,8 @@ func RequestParser(conn net.Conn) (*Request, error) {
 		return nil, fmt.Errorf("command not recognized %s", parsedArray[2])
 	}
 	req.Command = comm
-	if len(parsedArray) > 5 {
-		req.Args = parsedArray[4:]
-	}
+	// parse command args
+	req.Args = extractArgs(parsedArray)
 
 	return req, nil
 }
@@ -71,4 +86,17 @@ func parseBulkBytes(input []byte) []string {
 	parts := strings.Split(str, "\r\n")
 
 	return parts
+}
+
+func extractArgs(parsedArray []string) []string {
+	args := []string{}
+	// args start after position two in array
+	for _, chunk := range parsedArray[3 : len(parsedArray)-1] {
+		// check if first character is $
+		if chunk[0] == '$' {
+			continue
+		}
+		args = append(args, chunk)
+	}
+	return args
 }

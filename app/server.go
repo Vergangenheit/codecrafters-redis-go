@@ -49,11 +49,11 @@ func handleConnection(conn net.Conn) {
 			}
 			fmt.Printf("Cannot parse the request %v", err)
 		}
-		if isPing(request) {
-			response = "+PONG\r\n"
-		}
-		if ok, resp := isEcho(request); ok {
-			response = fmt.Sprintf("+%s\r\n", resp)
+		fmt.Println("parsed request ", request)
+		response, err = parseResponse(request)
+		if err != nil {
+			fmt.Println("Error parsing response:", err)
+			return
 		}
 		// Send the response back to the client
 		_, err = conn.Write([]byte(response))
