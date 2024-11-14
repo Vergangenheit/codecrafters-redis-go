@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -19,7 +18,9 @@ func main() {
 	defer conn.Close()
 
 	// The slice of bytes to send
-	message := []byte("*2\r\n$4\r\nECHO\r\n$5\r\napple\r\n")
+	// message := []byte("*3\r\n$3\r\nSET\r\n$6\r\nbanana\r\n$10\r\nstrawberry\r\n")
+	message := []byte("*2\r\n$3\r\nGET\r\n$5\r\nbanana\r\n")
+	// message := []byte("*2\r\n$4\r\nECHO\r\n$5\r\napple\r\n")
 	// message := []byte("*1\r\n$4\r\nPING\r\n")
 	// Send the message to the server
 	_, err = conn.Write(message)
@@ -31,12 +32,12 @@ func main() {
 	// Set a 5-second timeout for reading the response
 	// conn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	// Read the response from the server
-	reader := bufio.NewReader(conn)
-	response, err := reader.ReadString('\n')
+	buffer := make([]byte, 1024)
+	_, err = conn.Read(buffer)
 	if err != nil {
-		log.Fatal("Failed to read response:", err)
+		log.Fatal("Failed to read conn:", err)
 	}
 
 	// Print the server response
-	fmt.Printf("Response from server: %s\n", response)
+	fmt.Printf("Response from server: %s\n", string(buffer))
 }
