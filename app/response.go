@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -35,6 +36,9 @@ func (s *server) parseResponse(req *Request) (string, error) {
 
 func (s *server) setValue(args []string) error {
 	// if expire time in args
+	for i, arg := range args {
+		args[i] = strings.ToLower(arg)
+	}
 	if slices.Contains(args, "px") {
 		expiry, err := strconv.Atoi(args[3])
 		if err != nil {
