@@ -1,6 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+)
 
 func (s *server) parseResponse(req *Request) (string, error) {
 	if req == nil {
@@ -12,7 +18,10 @@ func (s *server) parseResponse(req *Request) (string, error) {
 	case ECHO:
 		return fmt.Sprintf("+%s\r\n", req.Args[0]), nil
 	case SET:
-		s.setValue(req.Args[0], req.Args[1])
+		err := s.setValue(req.Args)
+		if err != nil {
+			return "", err
+		}
 		return "+OK\r\n", nil
 	case GET:
 		value, ok := s.getValue(req.Args[0])
@@ -25,14 +34,40 @@ func (s *server) parseResponse(req *Request) (string, error) {
 	}
 }
 
-func (s *server) setValue(key, value string) {
-	s.InMemoryStore[key] = value
+func (s *server) setValue(args []string) error {
+	// if expire time in args
+	for i, arg := range args {
+		args[i] = strings.ToLower(arg)
+	}
+	if slices.Contains(args, "px") {
+		expiry, err := strconv.Atoi(args[3])
+		if err != nil {
+			return fmt.Errorf("cannot convert expiry milliseconds to integer")
+		}
+		duration := time.Duration(expiry) * time.Millisecond
+		expiredTs := time.Now().Add(duration)
+		s.InMemoryStore[args[0]] = &Resource{
+			value:   args[1],
+			expired: &expiredTs,
+		}
+		return nil
+	}
+	s.InMemoryStore[args[0]] = &Resource{
+		value: args[1],
+	}
+	return nil
+
 }
 
 func (s *server) getValue(key string) (string, bool) {
-	val, ok := s.InMemoryStore[key]
+	tNow := time.Now()
+	res, ok := s.InMemoryStore[key]
 	if ok {
-		valStr := val.(string)
+		valStr := res.value
+		// does it have expiry?
+		if expired(res, tNow) {
+			return "", false
+		}
 		return valStr, ok
 	}
 	return "", false
