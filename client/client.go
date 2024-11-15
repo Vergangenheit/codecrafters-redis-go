@@ -19,9 +19,11 @@ func main() {
 
 	// The slice of bytes to send
 	// message := []byte("*3\r\n$3\r\nSET\r\n$6\r\nbanana\r\n$10\r\nstrawberry\r\n")
-	message := []byte("*2\r\n$3\r\nGET\r\n$5\r\nbanana\r\n")
+	// message := []byte("*2\r\n$3\r\nGET\r\n$5\r\nbanana\r\n")
 	// message := []byte("*2\r\n$4\r\nECHO\r\n$5\r\napple\r\n")
 	// message := []byte("*1\r\n$4\r\nPING\r\n")
+	// message := []byte("*5\r\n$3\r\nSET\r\n$6\r\norange\r\n$5\r\ngrape\r\n$2\r\npx\r\n$3\r\n180000\r\n")
+	message := []byte("*2\r\n$3\r\nGET\r\n$5\r\norange\r\n")
 	// Send the message to the server
 	_, err = conn.Write(message)
 	if err != nil {
