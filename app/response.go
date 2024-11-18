@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -29,6 +29,12 @@ func (s *server) parseResponse(req *Request) (string, error) {
 			return fmt.Sprintf("$%d\r\n%s\r\n", len(value), value), nil
 		}
 		return "$-1\r\n", nil
+	case CONFIG:
+		res, err := s.handleConfig(req.Args)
+		if err != nil {
+			return "", fmt.Errorf("error handling config %v", err)
+		}
+		return res, nil
 	default:
 		return "", fmt.Errorf("unknown request command %s", req.Command)
 	}
@@ -71,4 +77,28 @@ func (s *server) getValue(key string) (string, bool) {
 		return valStr, ok
 	}
 	return "", false
+}
+
+func (s *server) handleConfig(args []string) (string, error) {
+	// config first arg
+	switch args[0] {
+	case "GET":
+		return s.handleConfigGet(args)
+	default:
+		return "", fmt.Errorf("unrecognized config command")
+	}
+}
+
+func (s *server) handleConfigGet(args []string) (string, error) {
+	switch args[1] {
+	case "dir":
+		// build RESP bulk string
+		bulkStr := fmt.Sprintf("*2\r\n$%d\r\ndir\r\n$%d\r\n%s\r\n", 3, len(s.Config.Dir), s.Config.Dir)
+		return bulkStr, nil
+	case "dbfilename":
+		bulkStr := fmt.Sprintf("*2\r\n$%d\r\ndbfilename\r\n$%d\r\n%s\r\n", 3, len(s.Config.DbFilename), s.Config.DbFilename)
+		return bulkStr, nil
+	default:
+		return "", fmt.Errorf("unrecognized config command, expecting dir or dbfilename")
+	}
 }
