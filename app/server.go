@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -14,23 +14,30 @@ var _ = os.Exit
 type server struct {
 	Listener      net.Listener
 	InMemoryStore InMemoryStore
+	Config        *Config
 }
 
-func main() {
+func NewServer(listener net.Listener, store InMemoryStore, config *Config) *server {
+	return &server{
+		Listener:      listener,
+		InMemoryStore: store,
+		Config:        config,
+	}
+}
+
+func RunServer(config *Config) error {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 	store := InMemoryStore{}
+	// read config
+
 	// Uncomment this block to pass the first stage
 
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
-		os.Exit(1)
+		return fmt.Errorf("Failed to bind to port 6379 %v", err)
 	}
-	server := &server{
-		Listener:      l,
-		InMemoryStore: store,
-	}
+	server := NewServer(l, store, config)
 	defer l.Close()
 
 	for {

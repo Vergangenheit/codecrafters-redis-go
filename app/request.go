@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -13,10 +13,12 @@ const (
 type Command string
 
 const (
-	PING Command = "PING"
-	ECHO Command = "ECHO"
-	SET  Command = "SET"
-	GET  Command = "GET"
+	PING   Command = "PING"
+	ECHO   Command = "ECHO"
+	SET    Command = "SET"
+	GET    Command = "GET"
+	CONFIG Command = "CONFIG"
+	KEYS   Command = "KEYS"
 )
 
 func toCommand(str string) (Command, error) {
@@ -29,6 +31,10 @@ func toCommand(str string) (Command, error) {
 		return SET, nil
 	case "GET":
 		return GET, nil
+	case "CONFIG":
+		return CONFIG, nil
+	case "KEYS":
+		return KEYS, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
 	}
