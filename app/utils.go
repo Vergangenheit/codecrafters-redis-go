@@ -1,6 +1,11 @@
 package app
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+)
 
 func expired(res *Resource, currentTime time.Time) bool {
 	if res.expired == nil {
@@ -11,4 +16,28 @@ func expired(res *Resource, currentTime time.Time) bool {
 		return true
 	}
 	return false
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	// Ensure it's not some other error
+	return err == nil && !info.IsDir()
+}
+
+func formatMapKeys(m map[string]*Resource) string {
+	var builder strings.Builder
+
+	// Start with the number of keys
+	builder.WriteString(fmt.Sprintf("*%d\r\n", len(m)))
+
+	// Loop over the map to add each key
+	for key := range m {
+		keyLen := len(key)
+		builder.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", keyLen, key))
+	}
+
+	return builder.String()
 }

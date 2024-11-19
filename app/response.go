@@ -110,20 +110,11 @@ func (s *server) handleConfigGet(args []string) (string, error) {
 }
 
 func (s *server) handleKeys(args []string) (string, error) {
-	// parse dump file into inmem store
-	inMemoryStore, err := ReadRedisDBFile(s.Config.DbFilename)
-	if err != nil {
-		return "", fmt.Errorf("cannot parse dump file %v", err)
-	}
-	s.InMemoryStore = inMemoryStore
 	switch args[0] {
 	case "*":
 		// return all the keys
-		bulkStrBase := "*1\r\n"
-		for key, _ := range s.InMemoryStore {
-			bulkStrBase = bulkStrBase + fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)
-		}
-		return bulkStrBase, nil
+		// return all the keys
+		return formatMapKeys(s.InMemoryStore), nil
 
 	default:
 		return "", fmt.Errorf("argument for KEYS is not supported")

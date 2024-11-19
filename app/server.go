@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -17,12 +18,24 @@ type server struct {
 	Config        *Config
 }
 
-func NewServer(listener net.Listener, store InMemoryStore, config *Config) *server {
+func NewServer(listener net.Listener, store InMemoryStore, config *Config) (*server, error) {
+	// if dbfilename is valid, check if it should be parsed into inmemory store
+	if config.DbFilename != "" && config.Dir != "" {
+		// check if path exists
+		fullPath := filepath.Join(config.Dir, config.DbFilename)
+		if fileExists(fullPath) {
+			inMemoryStore, err := ReadRedisDBFile(fullPath)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse dump file %v", err)
+			}
+			store = inMemoryStore
+		}
+	}
 	return &server{
 		Listener:      listener,
 		InMemoryStore: store,
 		Config:        config,
-	}
+	}, nil
 }
 
 func RunServer(config *Config) error {
@@ -37,7 +50,10 @@ func RunServer(config *Config) error {
 	if err != nil {
 		return fmt.Errorf("Failed to bind to port 6379 %v", err)
 	}
-	server := NewServer(l, store, config)
+	server, err := NewServer(l, store, config)
+	if err != nil {
+		return fmt.Errorf("Failed to instantiate server %v", err)
+	}
 	defer l.Close()
 
 	for {
