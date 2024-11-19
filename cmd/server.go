@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/codecrafters-io/redis-starter-go/app"
+	"github.com/Vergangenheit/codecrafters-redis-go/app"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

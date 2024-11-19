@@ -5,6 +5,6 @@ import "time"
 type InMemoryStore map[string]*Resource
 
 type Resource struct {
-	value   string
+	value   interface{}
 	expired *time.Time
 }

@@ -24,7 +24,7 @@ func main() {
 	// message := []byte("*1\r\n$4\r\nPING\r\n")
 	// message := []byte("*5\r\n$3\r\nSET\r\n$6\r\norange\r\n$5\r\ngrape\r\n$2\r\npx\r\n$3\r\n180000\r\n")
 	// message := []byte("*2\r\n$3\r\nGET\r\n$5\r\norange\r\n")
-	message := []byte("*3\r\n$6\r\nCONFIG\r\n$3\r\nGET\r\n$3\r\ndir\r\n")
+	message := []byte("*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n")
 	// Send the message to the server
 	_, err = conn.Write(message)
 	if err != nil {

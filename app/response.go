@@ -32,7 +32,13 @@ func (s *server) parseResponse(req *Request) (string, error) {
 	case CONFIG:
 		res, err := s.handleConfig(req.Args)
 		if err != nil {
-			return "", fmt.Errorf("error handling config %v", err)
+			return "", fmt.Errorf("error handling COMMAND %v", err)
+		}
+		return res, nil
+	case KEYS:
+		res, err := s.handleKeys(req.Args)
+		if err != nil {
+			return "", fmt.Errorf("error handling KEYS %v", err)
 		}
 		return res, nil
 	default:
@@ -69,7 +75,7 @@ func (s *server) getValue(key string) (string, bool) {
 	tNow := time.Now()
 	res, ok := s.InMemoryStore[key]
 	if ok {
-		valStr := res.value
+		valStr := res.value.(string)
 		// does it have expiry?
 		if expired(res, tNow) {
 			return "", false
@@ -100,5 +106,26 @@ func (s *server) handleConfigGet(args []string) (string, error) {
 		return bulkStr, nil
 	default:
 		return "", fmt.Errorf("unrecognized config command, expecting dir or dbfilename")
+	}
+}
+
+func (s *server) handleKeys(args []string) (string, error) {
+	// parse dump file into inmem store
+	inMemoryStore, err := ReadRedisDBFile(s.Config.DbFilename)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse dump file %v", err)
+	}
+	s.InMemoryStore = inMemoryStore
+	switch args[0] {
+	case "*":
+		// return all the keys
+		bulkStrBase := "*1\r\n"
+		for key, _ := range s.InMemoryStore {
+			bulkStrBase = bulkStrBase + fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)
+		}
+		return bulkStrBase, nil
+
+	default:
+		return "", fmt.Errorf("argument for KEYS is not supported")
 	}
 }
