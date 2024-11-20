@@ -46,9 +46,9 @@ func RunServer(config *Config) error {
 
 	// Uncomment this block to pass the first stage
 
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", config.Port))
 	if err != nil {
-		return fmt.Errorf("Failed to bind to port 6379 %v", err)
+		return fmt.Errorf("Failed to bind to port %d %v", config.Port, err)
 	}
 	server, err := NewServer(l, store, config)
 	if err != nil {
