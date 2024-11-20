@@ -51,6 +51,9 @@ func RunServer(config *Config) error {
 		return fmt.Errorf("Failed to bind to port %d %v", config.Port, err)
 	}
 	server, err := NewServer(l, store, config)
+	if config.ReplicaOf != nil {
+		fmt.Printf("server is replica of %s", *config.ReplicaOf)
+	}
 	if err != nil {
 		return fmt.Errorf("Failed to instantiate server %v", err)
 	}

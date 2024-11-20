@@ -13,6 +13,7 @@ var (
 	dir        string
 	dbfilename string
 	port       string
+	replicaof  string
 )
 
 func init() {
@@ -20,11 +21,13 @@ func init() {
 	serverStartCmd.Flags().StringVar(&dir, "dir", "/tmp/redis-files", "Directory path for the server")
 	serverStartCmd.Flags().StringVar(&dbfilename, "dbfilename", "dump.rdb", "Database filename for the server")
 	serverStartCmd.Flags().StringVar(&port, "port", "6379", "port to run server from")
+	serverStartCmd.Flags().StringVar(&replicaof, "replicaof", "", "port to run server from")
 
 	// Bind flags to Viper
 	viper.BindPFlag("dir", serverStartCmd.Flags().Lookup("dir"))
 	viper.BindPFlag("dbfilename", serverStartCmd.Flags().Lookup("dbfilename"))
 	viper.BindPFlag("port", serverStartCmd.Flags().Lookup("port"))
+	viper.BindPFlag("replicaof", serverStartCmd.Flags().Lookup("replicaof"))
 }
 
 var serverStartCmd = &cobra.Command{
@@ -36,6 +39,7 @@ var serverStartCmd = &cobra.Command{
 		dir := viper.GetString("dir")
 		dbfilename := viper.GetString("dbfilename")
 		port := viper.GetString("port")
+		replicaOf := viper.GetString("replicaof")
 
 		fmt.Printf("Starting server on port %s...\n", port)
 		fmt.Printf("Using directory: %s\n", dir)
@@ -46,6 +50,9 @@ var serverStartCmd = &cobra.Command{
 			Dir:        dir,
 			DbFilename: dbfilename,
 			Port:       port,
+		}
+		if replicaOf != "" {
+			config.ReplicaOf = &replicaOf
 		}
 		err := app.RunServer(config)
 		if err != nil {

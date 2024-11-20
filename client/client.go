@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// Define the server address and port (example: localhost:6379)
-	serverAddress := "localhost:6379"
+	serverAddress := "localhost:6789"
 
 	// Connect to the TCP server
 	conn, err := net.Dial("tcp", serverAddress)
@@ -24,7 +24,8 @@ func main() {
 	// message := []byte("*1\r\n$4\r\nPING\r\n")
 	// message := []byte("*5\r\n$3\r\nSET\r\n$6\r\norange\r\n$5\r\ngrape\r\n$2\r\npx\r\n$3\r\n180000\r\n")
 	// message := []byte("*2\r\n$3\r\nGET\r\n$5\r\norange\r\n")
-	message := []byte("*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n")
+	// message := []byte("*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n")
+	message := []byte("*2\r\n$4\r\nINFO\r\n$11\r\nreplication\r\n")
 	// Send the message to the server
 	_, err = conn.Write(message)
 	if err != nil {

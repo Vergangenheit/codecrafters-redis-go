@@ -41,6 +41,12 @@ func (s *server) parseResponse(req *Request) (string, error) {
 			return "", fmt.Errorf("error handling KEYS %v", err)
 		}
 		return res, nil
+	case INFO:
+		res, err := s.handleInfo(req.Args)
+		if err != nil {
+			return "", fmt.Errorf("error handling INFO %v", err)
+		}
+		return res, nil
 	default:
 		return "", fmt.Errorf("unknown request command %s", req.Command)
 	}
@@ -118,5 +124,19 @@ func (s *server) handleKeys(args []string) (string, error) {
 
 	default:
 		return "", fmt.Errorf("argument for KEYS is not supported")
+	}
+}
+
+func (s *server) handleInfo(args []string) (string, error) {
+	switch args[0] {
+	case "replication":
+		keyVal := "role:master"
+		if s.Config.ReplicaOf != nil {
+			keyVal = "role:slave"
+		}
+		bulkString := fmt.Sprintf("$%d\r\n%s\r\n", len(keyVal), keyVal)
+		return bulkString, nil
+	default:
+		return "", fmt.Errorf("Unrecognized argument %s for INFO command", args[0])
 	}
 }

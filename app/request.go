@@ -19,6 +19,7 @@ const (
 	GET    Command = "GET"
 	CONFIG Command = "CONFIG"
 	KEYS   Command = "KEYS"
+	INFO   Command = "INFO"
 )
 
 func toCommand(str string) (Command, error) {
@@ -35,6 +36,8 @@ func toCommand(str string) (Command, error) {
 		return CONFIG, nil
 	case "KEYS":
 		return KEYS, nil
+	case "INFO":
+		return INFO, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
 	}
