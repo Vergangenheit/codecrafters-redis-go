@@ -41,3 +41,20 @@ func formatMapKeys(m map[string]*Resource) string {
 
 	return builder.String()
 }
+
+func formatBulkString(data []string) string {
+	// Join the slice into a single string separated by newlines
+	joined := strings.Join(data, "\n")
+
+	// Calculate the byte length of the joined string
+	length := len(joined)
+
+	var builder strings.Builder
+
+	// Start with the number of keys
+	builder.WriteString(fmt.Sprintf("$%d\r\n", length))
+	builder.WriteString(joined)
+	builder.WriteString("\r\n")
+
+	return builder.String()
+}

@@ -130,11 +130,14 @@ func (s *server) handleKeys(args []string) (string, error) {
 func (s *server) handleInfo(args []string) (string, error) {
 	switch args[0] {
 	case "replication":
-		keyVal := "role:master"
+		keyVal1 := "role:master"
 		if s.Config.ReplicaOf != nil {
-			keyVal = "role:slave"
+			keyVal1 = "role:slave"
 		}
-		bulkString := fmt.Sprintf("$%d\r\n%s\r\n", len(keyVal), keyVal)
+		keyVal2 := "master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
+		keyVal3 := "master_repl_offset:0"
+		bulkString := formatBulkString([]string{keyVal1, keyVal2, keyVal3})
+		fmt.Printf("got bulk string %s", bulkString)
 		return bulkString, nil
 	default:
 		return "", fmt.Errorf("Unrecognized argument %s for INFO command", args[0])
