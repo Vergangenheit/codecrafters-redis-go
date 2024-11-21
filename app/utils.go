@@ -58,3 +58,22 @@ func formatBulkString(data []string) string {
 
 	return builder.String()
 }
+
+func buildRespArray(req *Request) string {
+	data := []string{string(req.Command)}
+
+	data = append(data, req.Args...)
+
+	var builder strings.Builder
+
+	// Start with the number of keys
+	builder.WriteString(fmt.Sprintf("*%d\r\n", len(data)))
+
+	// Loop over the map to add each key
+	for _, key := range data {
+		keyLen := len(key)
+		builder.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", keyLen, key))
+	}
+
+	return builder.String()
+}

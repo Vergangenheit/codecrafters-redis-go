@@ -47,6 +47,12 @@ func (s *server) parseResponse(req *Request) (string, error) {
 			return "", fmt.Errorf("error handling INFO %v", err)
 		}
 		return res, nil
+	case REPLCONF:
+		res, err := s.handleReplConf()
+		if err != nil {
+			return "", fmt.Errorf("error handling REPLCONF %v", err)
+		}
+		return res, nil
 	default:
 		return "", fmt.Errorf("unknown request command %s", req.Command)
 	}
@@ -142,4 +148,9 @@ func (s *server) handleInfo(args []string) (string, error) {
 	default:
 		return "", fmt.Errorf("Unrecognized argument %s for INFO command", args[0])
 	}
+}
+
+func (s *server) handleReplConf() (string, error) {
+	// always repond with a simple RESP simple string OK
+	return "+OK\r\n", nil
 }

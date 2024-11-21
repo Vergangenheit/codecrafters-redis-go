@@ -13,13 +13,14 @@ const (
 type Command string
 
 const (
-	PING   Command = "PING"
-	ECHO   Command = "ECHO"
-	SET    Command = "SET"
-	GET    Command = "GET"
-	CONFIG Command = "CONFIG"
-	KEYS   Command = "KEYS"
-	INFO   Command = "INFO"
+	PING     Command = "PING"
+	ECHO     Command = "ECHO"
+	SET      Command = "SET"
+	GET      Command = "GET"
+	CONFIG   Command = "CONFIG"
+	KEYS     Command = "KEYS"
+	INFO     Command = "INFO"
+	REPLCONF Command = "REPLCONF"
 )
 
 func toCommand(str string) (Command, error) {
@@ -38,8 +39,33 @@ func toCommand(str string) (Command, error) {
 		return KEYS, nil
 	case "INFO":
 		return INFO, nil
+	case "REPLCONF":
+		return REPLCONF, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
+	}
+}
+
+func (c *Command) ToStr() string {
+	switch *c {
+	case PING:
+		return "PING"
+	case ECHO:
+		return "ECHO"
+	case SET:
+		return "SET"
+	case GET:
+		return "GET"
+	case CONFIG:
+		return "CONFIG"
+	case KEYS:
+		return "KEYS"
+	case INFO:
+		return "INFO"
+	case REPLCONF:
+		return "REPLCONF"
+	default:
+		return ""
 	}
 }
 
@@ -98,4 +124,59 @@ func extractArgs(parsedArray []string) []string {
 		args = append(args, chunk)
 	}
 	return args
+}
+
+func sendRequestToMaster(conn net.Conn, req *Request) error {
+
+	switch req.Command {
+	case PING:
+		// send as a single element resp array
+		message := "*1\r\n$4\r\nPING\r\n"
+		_, err := conn.Write([]byte(message))
+		if err != nil {
+			return fmt.Errorf("Failed to send data: %v", err)
+		}
+		buffer := make([]byte, receiveBuf)
+		// start reading chunks delimited by newline byte
+		_, err = conn.Read(buffer)
+		if err != nil {
+			return err
+		}
+		return nil
+	case REPLCONF:
+		switch req.Args[0] {
+		case "listening-port":
+			// TODO
+			respArray := buildRespArray(req)
+			_, err := conn.Write([]byte(respArray))
+			if err != nil {
+				return fmt.Errorf("Failed to send REPLCONF req: %v", err)
+			}
+			buffer := make([]byte, receiveBuf)
+			// start reading chunks delimited by newline byte
+			_, err = conn.Read(buffer)
+			if err != nil {
+				return err
+			}
+			return nil
+		case "capa":
+			// TODO
+			respArray := buildRespArray(req)
+			_, err := conn.Write([]byte(respArray))
+			if err != nil {
+				return fmt.Errorf("Failed to send REPLCONF req: %v", err)
+			}
+			buffer := make([]byte, receiveBuf)
+			// start reading chunks delimited by newline byte
+			_, err = conn.Read(buffer)
+			if err != nil {
+				return err
+			}
+			return nil
+		default:
+			return fmt.Errorf("REPLCONG args not recognized")
+		}
+	default:
+		return fmt.Errorf("Cannot send %v requests", req.Command)
+	}
 }

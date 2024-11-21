@@ -1,11 +1,13 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -53,6 +55,10 @@ func RunServer(config *Config) error {
 	server, err := NewServer(l, store, config)
 	if config.ReplicaOf != nil {
 		fmt.Printf("server is replica of %s", *config.ReplicaOf)
+		err := server.handhshakeWithMaster()
+		if err != nil {
+			return fmt.Errorf("Failed to handshake with master %v", err)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to instantiate server %v", err)
@@ -98,4 +104,42 @@ func (s *server) handleConnection(conn net.Conn) {
 		}
 	}
 
+}
+
+func (s *server) handhshakeWithMaster() error {
+	if s.Config.ReplicaOf == nil {
+		return errors.New("master server address cannot be null")
+	}
+	// compose address since replica of is separated
+	serverAddr := strings.Join(strings.Split(*s.Config.ReplicaOf, " "), ":")
+	// Connect to the TCP server
+	conn, err := net.Dial("tcp", serverAddr)
+	if err != nil {
+		return fmt.Errorf("Connection failed: %v", err)
+	}
+	defer conn.Close()
+	// start sending PING
+	err = sendRequestToMaster(conn, &Request{
+		Command: PING,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to ping master %v", err)
+	}
+	// send first REPLCONF
+	err = sendRequestToMaster(conn, &Request{
+		Command: REPLCONF,
+		Args:    []string{"listening-port", s.Config.Port},
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to send first replconf to master %v", err)
+	}
+	// send second REPLCONF
+	err = sendRequestToMaster(conn, &Request{
+		Command: REPLCONF,
+		Args:    []string{"capa", "psync2"},
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to send second replconf to master %v", err)
+	}
+	return nil
 }
