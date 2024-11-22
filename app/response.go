@@ -53,6 +53,12 @@ func (s *server) parseResponse(req *Request) (string, error) {
 			return "", fmt.Errorf("error handling REPLCONF %v", err)
 		}
 		return res, nil
+	case PSYNC:
+		res, err := s.handlePsync(req.Args)
+		if err != nil {
+			return "", fmt.Errorf("error handling PSYNC %v", err)
+		}
+		return res, nil
 	default:
 		return "", fmt.Errorf("unknown request command %s", req.Command)
 	}
@@ -153,4 +159,8 @@ func (s *server) handleInfo(args []string) (string, error) {
 func (s *server) handleReplConf() (string, error) {
 	// always repond with a simple RESP simple string OK
 	return "+OK\r\n", nil
+}
+
+func (s *server) handlePsync(args []string) (string, error) {
+	return "", nil
 }

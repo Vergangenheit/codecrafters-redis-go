@@ -141,5 +141,10 @@ func (s *server) handhshakeWithMaster() error {
 	if err != nil {
 		return fmt.Errorf("Failed to send second replconf to master %v", err)
 	}
+	// send PSYNC request
+	err = sendRequestToMaster(conn, &Request{
+		Command: PSYNC,
+		Args:    []string{"?", "-1"},
+	})
 	return nil
 }

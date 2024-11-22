@@ -21,6 +21,7 @@ const (
 	KEYS     Command = "KEYS"
 	INFO     Command = "INFO"
 	REPLCONF Command = "REPLCONF"
+	PSYNC    Command = "PSYNC"
 )
 
 func toCommand(str string) (Command, error) {
@@ -41,6 +42,8 @@ func toCommand(str string) (Command, error) {
 		return INFO, nil
 	case "REPLCONF":
 		return REPLCONF, nil
+	case "PSYNC":
+		return PSYNC, nil
 	default:
 		return "", fmt.Errorf("Command %s not recognized", str)
 	}
@@ -64,6 +67,8 @@ func (c *Command) ToStr() string {
 		return "INFO"
 	case REPLCONF:
 		return "REPLCONF"
+	case PSYNC:
+		return "PSYNC"
 	default:
 		return ""
 	}
@@ -146,7 +151,6 @@ func sendRequestToMaster(conn net.Conn, req *Request) error {
 	case REPLCONF:
 		switch req.Args[0] {
 		case "listening-port":
-			// TODO
 			respArray := buildRespArray(req)
 			_, err := conn.Write([]byte(respArray))
 			if err != nil {
@@ -160,7 +164,6 @@ func sendRequestToMaster(conn net.Conn, req *Request) error {
 			}
 			return nil
 		case "capa":
-			// TODO
 			respArray := buildRespArray(req)
 			_, err := conn.Write([]byte(respArray))
 			if err != nil {
@@ -176,6 +179,19 @@ func sendRequestToMaster(conn net.Conn, req *Request) error {
 		default:
 			return fmt.Errorf("REPLCONG args not recognized")
 		}
+	case PSYNC:
+		respArray := buildRespArray(req)
+		_, err := conn.Write([]byte(respArray))
+		if err != nil {
+			return fmt.Errorf("Failed to send PSYNC req: %v", err)
+		}
+		buffer := make([]byte, receiveBuf)
+		// start reading chunks delimited by newline byte
+		_, err = conn.Read(buffer)
+		if err != nil {
+			return err
+		}
+		return nil
 	default:
 		return fmt.Errorf("Cannot send %v requests", req.Command)
 	}
