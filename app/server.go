@@ -81,7 +81,6 @@ func (s *server) handleConnection(conn net.Conn) {
 	fmt.Println("Connected to client:", conn.RemoteAddr())
 
 	for {
-		var response string
 		// parse request
 		request, err := RequestParser(conn)
 		if err != nil {
@@ -91,16 +90,18 @@ func (s *server) handleConnection(conn net.Conn) {
 			fmt.Printf("Cannot parse the request %v", err)
 		}
 		fmt.Println("parsed request ", request)
-		response, err = s.parseResponse(request)
+		responses, err := s.parseResponses(request)
 		if err != nil {
 			fmt.Println("Error parsing response:", err)
 			return
 		}
-		// Send the response back to the client
-		_, err = conn.Write([]byte(response))
-		if err != nil {
-			fmt.Println("Error sending response:", err)
-			return
+		for _, response := range responses {
+			// Send the response back to the client
+			_, err = conn.Write([]byte(response))
+			if err != nil {
+				fmt.Println("Error sending response:", err)
+				return
+			}
 		}
 	}
 

@@ -91,3 +91,8 @@ func simpleRespString(data []string) string {
 
 	return builder.String()
 }
+
+func rdbContentResp(rdbBytes []byte) string {
+	rdbString := string(rdbBytes)
+	return fmt.Sprintf("$%d\r\n%s", len(rdbString), rdbString)
+}

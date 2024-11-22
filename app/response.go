@@ -1,66 +1,72 @@
 package app
 
 import (
+	"encoding/base64"
 	"fmt"
+	"log"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func (s *server) parseResponse(req *Request) (string, error) {
+const (
+	emptyRdbBase64 string = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="
+)
+
+func (s *server) parseResponses(req *Request) ([]string, error) {
 	if req == nil {
-		return "", fmt.Errorf("Request is nil")
+		return nil, fmt.Errorf("Request is nil")
 	}
 	switch req.Command {
 	case PING:
-		return "+PONG\r\n", nil
+		return []string{"+PONG\r\n"}, nil
 	case ECHO:
-		return fmt.Sprintf("+%s\r\n", req.Args[0]), nil
+		return []string{fmt.Sprintf("+%s\r\n", req.Args[0])}, nil
 	case SET:
 		err := s.setValue(req.Args)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return "+OK\r\n", nil
+		return []string{"+OK\r\n"}, nil
 	case GET:
 		value, ok := s.getValue(req.Args[0])
 		if ok {
-			return fmt.Sprintf("$%d\r\n%s\r\n", len(value), value), nil
+			return []string{fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)}, nil
 		}
-		return "$-1\r\n", nil
+		return []string{"$-1\r\n"}, nil
 	case CONFIG:
 		res, err := s.handleConfig(req.Args)
 		if err != nil {
-			return "", fmt.Errorf("error handling COMMAND %v", err)
+			return nil, fmt.Errorf("error handling COMMAND %v", err)
 		}
-		return res, nil
+		return []string{res}, nil
 	case KEYS:
 		res, err := s.handleKeys(req.Args)
 		if err != nil {
-			return "", fmt.Errorf("error handling KEYS %v", err)
+			return nil, fmt.Errorf("error handling KEYS %v", err)
 		}
-		return res, nil
+		return []string{res}, nil
 	case INFO:
 		res, err := s.handleInfo(req.Args)
 		if err != nil {
-			return "", fmt.Errorf("error handling INFO %v", err)
+			return nil, fmt.Errorf("error handling INFO %v", err)
 		}
-		return res, nil
+		return []string{res}, nil
 	case REPLCONF:
 		res, err := s.handleReplConf()
 		if err != nil {
-			return "", fmt.Errorf("error handling REPLCONF %v", err)
+			return nil, fmt.Errorf("error handling REPLCONF %v", err)
 		}
-		return res, nil
+		return []string{res}, nil
 	case PSYNC:
 		res, err := s.handlePsync(req.Args)
 		if err != nil {
-			return "", fmt.Errorf("error handling PSYNC %v", err)
+			return nil, fmt.Errorf("error handling PSYNC %v", err)
 		}
 		return res, nil
 	default:
-		return "", fmt.Errorf("unknown request command %s", req.Command)
+		return nil, fmt.Errorf("unknown request command %s", req.Command)
 	}
 }
 
@@ -161,8 +167,20 @@ func (s *server) handleReplConf() (string, error) {
 	return "+OK\r\n", nil
 }
 
-func (s *server) handlePsync(args []string) (string, error) {
-	return simpleRespString([]string{
+func (s *server) handlePsync(args []string) ([]string, error) {
+	simpleRespStr := simpleRespString([]string{
 		"FULLRESYNC", "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb", "0",
-	}), nil
+	})
+	// send empty rdb file
+	// Decode the Base64 string
+	decodedBytes, err := base64.StdEncoding.DecodeString(emptyRdbBase64)
+	if err != nil {
+		log.Fatalf("Error decoding Base64 string: %v", err)
+	}
+	// serialize into a resp rdb contentx
+	rdbContentStr := rdbContentResp(decodedBytes)
+
+	return []string{
+		simpleRespStr, rdbContentStr,
+	}, nil
 }
