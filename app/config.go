@@ -5,4 +5,9 @@ type Config struct {
 	DbFilename string
 	Port       string
 	ReplicaOf  *string
+	replicas   []*Replica
+}
+
+type Replica struct {
+	Port string
 }

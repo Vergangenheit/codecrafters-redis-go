@@ -54,7 +54,7 @@ func (s *server) parseResponses(req *Request) ([]string, error) {
 		}
 		return []string{res}, nil
 	case REPLCONF:
-		res, err := s.handleReplConf()
+		res, err := s.handleReplConf(req.Args)
 		if err != nil {
 			return nil, fmt.Errorf("error handling REPLCONF %v", err)
 		}
@@ -90,6 +90,10 @@ func (s *server) setValue(args []string) error {
 	}
 	s.InMemoryStore[args[0]] = &Resource{
 		value: args[1],
+	}
+	// TODO send request to replicas
+	if len(s.Config.replicas) > 0 {
+
 	}
 	return nil
 
@@ -162,8 +166,14 @@ func (s *server) handleInfo(args []string) (string, error) {
 	}
 }
 
-func (s *server) handleReplConf() (string, error) {
+func (s *server) handleReplConf(args []string) (string, error) {
 	// always repond with a simple RESP simple string OK
+	// if it's a listening port save replica
+	if slices.Contains(args, "listening-port") {
+		s.Config.replicas = append(s.Config.replicas, &Replica{
+			Port: args[1],
+		})
+	}
 	return "+OK\r\n", nil
 }
 

@@ -82,7 +82,7 @@ func (s *server) handleConnection(conn net.Conn) {
 
 	for {
 		// parse request
-		request, err := RequestParser(conn)
+		request, err := s.requestParser(conn)
 		if err != nil {
 			if err == io.EOF {
 				break

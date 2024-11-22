@@ -80,7 +80,7 @@ type Request struct {
 	Args    []string
 }
 
-func RequestParser(conn net.Conn) (*Request, error) {
+func (s *server) requestParser(conn net.Conn) (*Request, error) {
 	fmt.Println("parsing request")
 	// buffer the conn
 	buffer := make([]byte, receiveBuf)
