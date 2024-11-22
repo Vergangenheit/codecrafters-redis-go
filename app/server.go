@@ -146,5 +146,8 @@ func (s *server) handhshakeWithMaster() error {
 		Command: PSYNC,
 		Args:    []string{"?", "-1"},
 	})
+	if err != nil {
+		return fmt.Errorf("Failed to send psync to master %v", err)
+	}
 	return nil
 }

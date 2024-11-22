@@ -77,3 +77,17 @@ func buildRespArray(req *Request) string {
 
 	return builder.String()
 }
+
+func simpleRespString(data []string) string {
+	var builder strings.Builder
+
+	builder.WriteString(fmt.Sprintf("+%s", data[0]))
+	if len(data) > 1 {
+		for _, key := range data[1:] {
+			builder.WriteString(fmt.Sprintf(" %s", key))
+		}
+	}
+	builder.WriteString("\r\n")
+
+	return builder.String()
+}
