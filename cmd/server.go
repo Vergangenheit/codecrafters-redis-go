@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/Vergangenheit/codecrafters-redis-go/app"
+	"github.com/hashicorp/go-hclog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,6 +45,17 @@ var serverStartCmd = &cobra.Command{
 		fmt.Printf("Using directory: %s\n", dir)
 		fmt.Printf("Using database file: %s\n", dbfilename)
 
+		// set up logger
+		var loggerName string
+		if replicaOf != "" {
+			loggerName = "redis-replica"
+		} else {
+			loggerName = "redis-server"
+		}
+		logger := hclog.New(&hclog.LoggerOptions{
+			Name:  loggerName,
+			Level: hclog.LevelFromString("INFO"),
+		})
 		// Add your server startup logic here
 		config := &app.Config{
 			Dir:        dir,
@@ -54,9 +65,15 @@ var serverStartCmd = &cobra.Command{
 		if replicaOf != "" {
 			config.ReplicaOf = &replicaOf
 		}
-		err := app.RunServer(config)
+		server, err := app.NewServer(cmd.Context(), config, logger)
 		if err != nil {
-			log.Fatal(err)
+			logger.Error("Failed to instantiate server", "error", err)
+			return
+		}
+		err = server.RunServer()
+		if err != nil {
+			logger.Error("Failed to run server", "error", err)
+			return
 		}
 	},
 }

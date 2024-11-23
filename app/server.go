@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	hclog "github.com/hashicorp/go-hclog"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -18,67 +21,80 @@ type server struct {
 	Listener      net.Listener
 	InMemoryStore InMemoryStore
 	Config        *Config
+	Logger        hclog.Logger
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
-func NewServer(listener net.Listener, store InMemoryStore, config *Config) (*server, error) {
+func NewServer(contextBack context.Context, config *Config, logger hclog.Logger) (*server, error) {
 	// if dbfilename is valid, check if it should be parsed into inmemory store
+	ctx, cancel := context.WithCancel(contextBack)
+	store := InMemoryStore{}
 	if config.DbFilename != "" && config.Dir != "" {
 		// check if path exists
 		fullPath := filepath.Join(config.Dir, config.DbFilename)
 		if fileExists(fullPath) {
 			inMemoryStore, err := ReadRedisDBFile(fullPath)
 			if err != nil {
+				cancel()
 				return nil, fmt.Errorf("cannot parse dump file %v", err)
 			}
 			store = inMemoryStore
 		}
 	}
 	return &server{
-		Listener:      listener,
 		InMemoryStore: store,
 		Config:        config,
+		Logger:        logger,
+		ctx:           ctx,
+		cancel:        cancel,
 	}, nil
 }
 
-func RunServer(config *Config) error {
+func (s *server) RunServer() error {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
-	store := InMemoryStore{}
+	s.Logger.Info("Logs from your program will appear here!")
 	// read config
 
 	// Uncomment this block to pass the first stage
 
-	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", config.Port))
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", s.Config.Port))
 	if err != nil {
-		return fmt.Errorf("Failed to bind to port %d %v", config.Port, err)
+		s.Logger.Error("Failed to bind to port %s", s.Config.Port)
+		return err
 	}
-	server, err := NewServer(l, store, config)
-	if config.ReplicaOf != nil {
-		fmt.Printf("server is replica of %s", *config.ReplicaOf)
-		err := server.handhshakeWithMaster()
+	s.Listener = l
+	defer l.Close()
+	if s.Config.ReplicaOf != nil {
+		fmt.Printf("server is replica of %s", *s.Config.ReplicaOf)
+		err := s.handhshakeWithMaster()
 		if err != nil {
-			return fmt.Errorf("Failed to handshake with master %v", err)
+			s.Logger.Error("Failed to handshake with master %v", err)
+			return err
 		}
 	}
-	if err != nil {
-		return fmt.Errorf("Failed to instantiate server %v", err)
-	}
-	defer l.Close()
 
 	for {
-		conn, err := server.Listener.Accept()
-		if err != nil {
-			fmt.Println("cannot accept a connection")
+		select {
+		case <-s.ctx.Done():
+			s.Logger.Info("Server shutting down")
+			return nil
+		default:
+			conn, err := s.Listener.Accept()
+			if err != nil {
+				s.Logger.Error("cannot accept a connection")
+				return err
+			}
+			// Handle the connection in a new goroutine
+			go s.handleConnection(conn)
 		}
-		// Handle the connection in a new goroutine
-		go server.handleConnection(conn)
 	}
 }
 
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	fmt.Println("Connected to client:", conn.RemoteAddr())
+	s.Logger.Info("Connected to client:", conn.RemoteAddr())
 
 	for {
 		// parse request
@@ -87,21 +103,23 @@ func (s *server) handleConnection(conn net.Conn) {
 			if err == io.EOF {
 				break
 			}
-			fmt.Printf("Cannot parse the request %v", err)
+			s.Logger.Error("Cannot parse the request %v", err)
 		}
-		fmt.Println("parsed request ", request)
-		responses, err := s.parseResponses(request)
+		s.Logger.Info("parsed request ", request)
+		responses, err := s.generateResponses(request)
 		if err != nil {
-			fmt.Println("Error parsing response:", err)
+			s.Logger.Error("Error parsing response:", err)
 			return
 		}
+		s.Logger.Info("Responses generated:", responses)
 		for _, response := range responses {
 			// Send the response back to the client
 			_, err = conn.Write([]byte(response))
 			if err != nil {
-				fmt.Println("Error sending response:", err)
+				s.Logger.Error("Error sending response:", err)
 				return
 			}
+			s.Logger.Info(fmt.Sprintf("Response sent: %s", response))
 		}
 	}
 
@@ -116,7 +134,8 @@ func (s *server) handhshakeWithMaster() error {
 	// Connect to the TCP server
 	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		return fmt.Errorf("Connection failed: %v", err)
+		s.Logger.Error("Connection failed: %v", err)
+		return err
 	}
 	defer conn.Close()
 	// start sending PING
@@ -124,7 +143,7 @@ func (s *server) handhshakeWithMaster() error {
 		Command: PING,
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to ping master %v", err)
+		s.Logger.Error("Failed to ping master %v", err)
 	}
 	// send first REPLCONF
 	err = sendRequestToMaster(conn, &Request{
@@ -132,7 +151,7 @@ func (s *server) handhshakeWithMaster() error {
 		Args:    []string{"listening-port", s.Config.Port},
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to send first replconf to master %v", err)
+		s.Logger.Error("Failed to send first replconf to master %v", err)
 	}
 	// send second REPLCONF
 	err = sendRequestToMaster(conn, &Request{
@@ -140,7 +159,7 @@ func (s *server) handhshakeWithMaster() error {
 		Args:    []string{"capa", "psync2"},
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to send second replconf to master %v", err)
+		s.Logger.Error("Failed to send second replconf to master %v", err)
 	}
 	// send PSYNC request
 	err = sendRequestToMaster(conn, &Request{
@@ -148,7 +167,12 @@ func (s *server) handhshakeWithMaster() error {
 		Args:    []string{"?", "-1"},
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to send psync to master %v", err)
+		s.Logger.Error("Failed to send psync to master %v", err)
 	}
 	return nil
+}
+
+func (s *server) Stop() {
+	s.Listener.Close()
+	s.cancel() // Signal the server to stop
 }

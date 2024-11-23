@@ -8,10 +8,10 @@ import (
 )
 
 func expired(res *Resource, currentTime time.Time) bool {
-	if res.expired == nil {
+	if res.Expired == nil {
 		return false
 	}
-	expiredTs := *res.expired
+	expiredTs := *res.Expired
 	if expiredTs.Before(currentTime) {
 		return true
 	}

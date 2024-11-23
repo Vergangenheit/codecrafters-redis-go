@@ -36,8 +36,8 @@ func ReadRedisDBFile(filename string) (map[string]*Resource, error) {
 		case *rdb.StringData:
 			// add it to store
 			result[data.Key] = &Resource{
-				value:   data.Value,
-				expired: data.Expiry,
+				Value:   data.Value,
+				Expired: data.Expiry,
 			}
 		}
 	}

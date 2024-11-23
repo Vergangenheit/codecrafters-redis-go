@@ -14,7 +14,11 @@ const (
 	emptyRdbBase64 string = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="
 )
 
-func (s *server) parseResponses(req *Request) ([]string, error) {
+type Response struct {
+	Responses []string
+}
+
+func (s *server) generateResponses(req *Request) ([]string, error) {
 	if req == nil {
 		return nil, fmt.Errorf("Request is nil")
 	}
@@ -83,13 +87,13 @@ func (s *server) setValue(args []string) error {
 		duration := time.Duration(expiry) * time.Millisecond
 		expiredTs := time.Now().Add(duration)
 		s.InMemoryStore[args[0]] = &Resource{
-			value:   args[1],
-			expired: &expiredTs,
+			Value:   args[1],
+			Expired: &expiredTs,
 		}
 		return nil
 	}
 	s.InMemoryStore[args[0]] = &Resource{
-		value: args[1],
+		Value: args[1],
 	}
 	// TODO send request to replicas
 	if len(s.Config.replicas) > 0 {
@@ -103,7 +107,7 @@ func (s *server) getValue(key string) (string, bool) {
 	tNow := time.Now()
 	res, ok := s.InMemoryStore[key]
 	if ok {
-		valStr := res.value.(string)
+		valStr := res.Value.(string)
 		// does it have expiry?
 		if expired(res, tNow) {
 			return "", false
