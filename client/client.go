@@ -58,7 +58,7 @@ func (r *RedisClient) deserializeResponse(buffer []byte) []string {
 		if strings.HasPrefix(part, "+") {
 			part = strings.TrimPrefix(part, "+")
 		}
-		if strings.HasPrefix(part, "$") {
+		if strings.HasPrefix(part, "$") || strings.HasPrefix(part, "*") {
 			continue
 		}
 		cleanedParts = append(cleanedParts, part)
@@ -75,7 +75,7 @@ func (r *RedisClient) requestSerializer(request *app.Request) (string, error) {
 	switch request.Command {
 	case app.PING:
 		return "*1\r\n$4\r\nPING\r\n", nil
-	case app.ECHO, app.SET, app.GET:
+	case app.ECHO, app.SET, app.GET, app.CONFIG:
 		bulkStr := r.buildBulkString(request)
 		return bulkStr, nil
 	default:

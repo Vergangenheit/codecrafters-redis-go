@@ -505,3 +505,99 @@ func Test_RespondToGetNonExpiredKey(t *testing.T) {
 	// Wait for server to finish
 	<-done
 }
+
+func Test_RespondToConfigGetDir(t *testing.T) {
+	// Test RespondToPing
+	config := &app.Config{
+		Port:       "6788",
+		Dir:        "/tmp/redis-files",
+		DbFilename: "dump.rdb",
+	}
+	server, err := app.NewServer(context.Background(), config, hclog.NewNullLogger())
+	if err != nil {
+		t.Fatalf("Failed to instantiate server: %v", err)
+	}
+
+	// Run server in a separate goroutine
+	done := make(chan struct{})
+	go func() {
+		err := server.RunServer()
+		if err != nil {
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				t.Errorf("Server run failed: %v", err)
+			}
+		}
+		close(done)
+	}()
+
+	// Allow server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Test client connection
+	cl, errC := client.NewRedisClient("localhost:6788")
+	if err != nil {
+		t.Fatalf("Failed to connect to server: %v", err)
+	}
+	// send PING
+	resp, err := cl.Send(&app.Request{Command: app.CONFIG, Args: []string{"GET", "dir"}})
+	if err != nil {
+		t.Fatalf("Failed to send CONFIG: %v", err)
+	}
+
+	assert.NoError(t, errC)
+	assert.Equal(t, []string{"dir", "/tmp/redis-files"}, resp)
+	cl.Close()
+	// Stop the server
+	server.Stop() // This method needs to be implemented in your server code
+
+	// Wait for server to finish
+	<-done
+}
+
+func Test_RespondToConfigGetDbfilename(t *testing.T) {
+	// Test RespondToPing
+	config := &app.Config{
+		Port:       "6788",
+		Dir:        "/tmp/redis-files",
+		DbFilename: "dump.rdb",
+	}
+	server, err := app.NewServer(context.Background(), config, hclog.NewNullLogger())
+	if err != nil {
+		t.Fatalf("Failed to instantiate server: %v", err)
+	}
+
+	// Run server in a separate goroutine
+	done := make(chan struct{})
+	go func() {
+		err := server.RunServer()
+		if err != nil {
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				t.Errorf("Server run failed: %v", err)
+			}
+		}
+		close(done)
+	}()
+
+	// Allow server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Test client connection
+	cl, errC := client.NewRedisClient("localhost:6788")
+	if err != nil {
+		t.Fatalf("Failed to connect to server: %v", err)
+	}
+	// send PING
+	resp, err := cl.Send(&app.Request{Command: app.CONFIG, Args: []string{"GET", "dbfilename"}})
+	if err != nil {
+		t.Fatalf("Failed to send CONFIG: %v", err)
+	}
+
+	assert.NoError(t, errC)
+	assert.Equal(t, []string{"dbfilename", "dump.rdb"}, resp)
+	cl.Close()
+	// Stop the server
+	server.Stop() // This method needs to be implemented in your server code
+
+	// Wait for server to finish
+	<-done
+}
