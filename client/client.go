@@ -75,7 +75,7 @@ func (r *RedisClient) requestSerializer(request *app.Request) (string, error) {
 	switch request.Command {
 	case app.PING:
 		return "*1\r\n$4\r\nPING\r\n", nil
-	case app.ECHO, app.SET, app.GET, app.CONFIG:
+	case app.ECHO, app.SET, app.GET, app.CONFIG, app.KEYS, app.INFO, app.REPLCONF, app.PSYNC:
 		bulkStr := r.buildBulkString(request)
 		return bulkStr, nil
 	default:

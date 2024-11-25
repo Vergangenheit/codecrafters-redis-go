@@ -24,6 +24,7 @@ type server struct {
 	Logger        hclog.Logger
 	ctx           context.Context
 	cancel        context.CancelFunc
+	masterConn    net.Conn
 }
 
 func NewServer(contextBack context.Context, config *Config, logger hclog.Logger) (*server, error) {
@@ -97,17 +98,11 @@ func (s *server) handleConnection(conn net.Conn) {
 	s.Logger.Info("Connected to client:", conn.RemoteAddr())
 
 	for {
-		// parse request
-		request, err := s.requestParser(conn)
+		responses, err := s.generateResponses(conn)
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			s.Logger.Error("Cannot parse the request %v", err)
-		}
-		s.Logger.Info("parsed request ", request)
-		responses, err := s.generateResponses(request)
-		if err != nil {
 			s.Logger.Error("Error parsing response:", err)
 			return
 		}
@@ -131,22 +126,22 @@ func (s *server) handhshakeWithMaster() error {
 	}
 	// compose address since replica of is separated
 	serverAddr := strings.Join(strings.Split(*s.Config.ReplicaOf, " "), ":")
-	// Connect to the TCP server
+	// Connect to the TCP server and keep the connection open
 	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		s.Logger.Error("Connection failed: %v", err)
 		return err
 	}
-	defer conn.Close()
+	s.masterConn = conn
 	// start sending PING
-	err = sendRequestToMaster(conn, &Request{
+	err = sendRequestToServer(conn, &Request{
 		Command: PING,
 	})
 	if err != nil {
 		s.Logger.Error("Failed to ping master %v", err)
 	}
 	// send first REPLCONF
-	err = sendRequestToMaster(conn, &Request{
+	err = sendRequestToServer(conn, &Request{
 		Command: REPLCONF,
 		Args:    []string{"listening-port", s.Config.Port},
 	})
@@ -154,7 +149,7 @@ func (s *server) handhshakeWithMaster() error {
 		s.Logger.Error("Failed to send first replconf to master %v", err)
 	}
 	// send second REPLCONF
-	err = sendRequestToMaster(conn, &Request{
+	err = sendRequestToServer(conn, &Request{
 		Command: REPLCONF,
 		Args:    []string{"capa", "psync2"},
 	})
@@ -162,7 +157,7 @@ func (s *server) handhshakeWithMaster() error {
 		s.Logger.Error("Failed to send second replconf to master %v", err)
 	}
 	// send PSYNC request
-	err = sendRequestToMaster(conn, &Request{
+	err = sendRequestToServer(conn, &Request{
 		Command: PSYNC,
 		Args:    []string{"?", "-1"},
 	})
@@ -172,7 +167,29 @@ func (s *server) handhshakeWithMaster() error {
 	return nil
 }
 
+func (s *server) propagateToReplicas(request *Request) error {
+	if len(s.Config.replicas) == 0 {
+		return nil
+	}
+	for _, replica := range s.Config.replicas {
+		err := sendRequestToServer(replica.conn, request)
+		if err != nil {
+			return fmt.Errorf("error propagating to replica %v", err)
+		}
+	}
+	return nil
+}
+
 func (s *server) Stop() {
-	s.Listener.Close()
+	if s.masterConn != nil {
+		err := s.masterConn.Close()
+		if err != nil {
+			s.Logger.Error("Failed to close connection to master %v", err)
+		}
+	}
+	err := s.Listener.Close()
+	if err != nil {
+		s.Logger.Error("Failed to close listener %v", err)
+	}
 	s.cancel() // Signal the server to stop
 }

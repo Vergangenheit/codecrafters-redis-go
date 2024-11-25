@@ -2,3 +2,4 @@ server
 my-client
 request
 *.rdb
+/tmp

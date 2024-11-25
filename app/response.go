@@ -3,7 +3,9 @@ package app
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,7 +20,15 @@ type Response struct {
 	Responses []string
 }
 
-func (s *server) generateResponses(req *Request) ([]string, error) {
+func (s *server) generateResponses(conn net.Conn) ([]string, error) {
+	// parse request
+	req, err := s.requestParser(conn)
+	if err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
+		return nil, fmt.Errorf("Cannot parse the request %v", err)
+	}
 	if req == nil {
 		return nil, fmt.Errorf("Request is nil")
 	}
@@ -31,6 +41,11 @@ func (s *server) generateResponses(req *Request) ([]string, error) {
 		err := s.setValue(req.Args)
 		if err != nil {
 			return nil, err
+		}
+		// TODO - propagate to replicas
+		err = s.propagateToReplicas(req)
+		if err != nil {
+			return nil, fmt.Errorf("error propagating to replicas %v", err)
 		}
 		return []string{"+OK\r\n"}, nil
 	case GET:
@@ -58,6 +73,13 @@ func (s *server) generateResponses(req *Request) ([]string, error) {
 		}
 		return []string{res}, nil
 	case REPLCONF:
+		// if it's a listening port save replica
+		if slices.Contains(req.Args, "listening-port") {
+			s.Config.replicas = append(s.Config.replicas, &Replica{
+				Port: req.Args[1],
+				conn: conn,
+			})
+		}
 		res, err := s.handleReplConf(req.Args)
 		if err != nil {
 			return nil, fmt.Errorf("error handling REPLCONF %v", err)
@@ -95,12 +117,7 @@ func (s *server) setValue(args []string) error {
 	s.InMemoryStore[args[0]] = &Resource{
 		Value: args[1],
 	}
-	// TODO send request to replicas
-	if len(s.Config.replicas) > 0 {
-
-	}
 	return nil
-
 }
 
 func (s *server) getValue(key string) (string, bool) {
@@ -172,12 +189,6 @@ func (s *server) handleInfo(args []string) (string, error) {
 
 func (s *server) handleReplConf(args []string) (string, error) {
 	// always repond with a simple RESP simple string OK
-	// if it's a listening port save replica
-	if slices.Contains(args, "listening-port") {
-		s.Config.replicas = append(s.Config.replicas, &Replica{
-			Port: args[1],
-		})
-	}
 	return "+OK\r\n", nil
 }
 

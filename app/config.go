@@ -1,5 +1,7 @@
 package app
 
+import "net"
+
 type Config struct {
 	Dir        string
 	DbFilename string
@@ -10,4 +12,5 @@ type Config struct {
 
 type Replica struct {
 	Port string
+	conn net.Conn
 }

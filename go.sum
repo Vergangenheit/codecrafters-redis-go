@@ -4,6 +4,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Vergangenheit/rdb-go v0.0.0-20241119083517-4b16f5aa7731 h1:oa9IoOUyI1jUI4ZLzoOUphRcao92ZkcoZ7iSdYD6k5I=
 github.com/Vergangenheit/rdb-go v0.0.0-20241119083517-4b16f5aa7731/go.mod h1:WhrxOGxyz73UtQ+BqFCp0vG4zEnKLTJ85qFm2e/7I2s=
+github.com/Vergangenheit/rdb-go v0.0.0-20241125101811-ccb75c741518 h1:5RXjRaBHTYxuSXFTSB8aAKCmGDuiySlwdiNEI3Y+nDI=
+github.com/Vergangenheit/rdb-go v0.0.0-20241125101811-ccb75c741518/go.mod h1:WhrxOGxyz73UtQ+BqFCp0vG4zEnKLTJ85qFm2e/7I2s=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=

@@ -11,7 +11,7 @@ module github.com/Vergangenheit/codecrafters-redis-go
 go 1.23
 
 require (
-	github.com/Vergangenheit/rdb-go v0.0.0-20241119083517-4b16f5aa7731
+	github.com/Vergangenheit/rdb-go v0.0.0-20241125101811-ccb75c741518
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0

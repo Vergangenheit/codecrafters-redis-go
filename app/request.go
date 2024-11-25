@@ -131,7 +131,7 @@ func extractArgs(parsedArray []string) []string {
 	return args
 }
 
-func sendRequestToMaster(conn net.Conn, req *Request) error {
+func sendRequestToServer(conn net.Conn, req *Request) error {
 
 	switch req.Command {
 	case PING:
@@ -146,6 +146,14 @@ func sendRequestToMaster(conn net.Conn, req *Request) error {
 		_, err = conn.Read(buffer)
 		if err != nil {
 			return err
+		}
+		return nil
+	case SET:
+		// set shoould not wait for reply
+		message := buildRespArray(req)
+		_, err := conn.Write([]byte(message))
+		if err != nil {
+			return fmt.Errorf("Failed to send SET req: %v", err)
 		}
 		return nil
 	case REPLCONF:
