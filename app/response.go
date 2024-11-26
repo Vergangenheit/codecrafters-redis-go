@@ -42,7 +42,6 @@ func (s *server) generateResponses(conn net.Conn) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		// TODO - propagate to replicas
 		err = s.propagateToReplicas(req)
 		if err != nil {
 			return nil, fmt.Errorf("error propagating to replicas %v", err)
@@ -77,7 +76,6 @@ func (s *server) generateResponses(conn net.Conn) ([]string, error) {
 		if slices.Contains(req.Args, "listening-port") {
 			s.Config.replicas = append(s.Config.replicas, &Replica{
 				Port: req.Args[1],
-				conn: conn,
 			})
 		}
 		res, err := s.handleReplConf(req.Args)

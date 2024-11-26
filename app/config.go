@@ -1,16 +1,15 @@
 package app
 
-import "net"
-
 type Config struct {
 	Dir        string
 	DbFilename string
-	Port       string
-	ReplicaOf  *string
-	replicas   []*Replica
+	// TODO - should add host alongside port
+	Port      string
+	ReplicaOf *string
+	replicas  []*Replica
 }
 
 type Replica struct {
+	// TODO - should add host alongside port
 	Port string
-	conn net.Conn
 }

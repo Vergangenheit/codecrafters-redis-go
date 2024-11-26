@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 const (
@@ -155,6 +156,7 @@ func sendRequestToServer(conn net.Conn, req *Request) error {
 		if err != nil {
 			return fmt.Errorf("Failed to send SET req: %v", err)
 		}
+		time.Sleep(100 * time.Millisecond)
 		return nil
 	case REPLCONF:
 		switch req.Args[0] {

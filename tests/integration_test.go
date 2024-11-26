@@ -1105,3 +1105,88 @@ func Test_PropagateSet(t *testing.T) {
 	// Wait for master to finish
 	<-done
 }
+
+func Test_ReplicaRespondToGet(t *testing.T) {
+	configMaster := &app.Config{
+		Port: "6382",
+	}
+	master, err := app.NewServer(context.Background(), configMaster, hclog.NewNullLogger())
+	if err != nil {
+		t.Fatalf("Failed to instantiate master server: %v", err)
+	}
+
+	// Run server in a separate goroutine
+	done := make(chan struct{})
+	go func() {
+		err := master.RunServer()
+		if err != nil {
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				t.Errorf("Server run failed: %v", err)
+			}
+		}
+		close(done)
+	}()
+
+	config := &app.Config{
+		Port:      "6790",
+		ReplicaOf: ToPtr("localhost:6382"),
+	}
+	slave, err := app.NewServer(context.Background(), config, hclog.NewNullLogger())
+	if err != nil {
+		t.Fatalf("Failed to instantiate server: %v", err)
+	}
+
+	// Run server in a separate goroutine
+	doneSlave := make(chan struct{})
+	go func() {
+		err := slave.RunServer()
+		if err != nil {
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				t.Errorf("Server run failed: %v", err)
+			}
+		}
+		close(doneSlave)
+	}()
+
+	// Allow server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Test client connection
+	cl, errC := client.NewRedisClient("localhost:6382")
+	if err != nil {
+		t.Fatalf("Failed to connect to server: %v", err)
+	}
+	// send INFO
+	resp, err := cl.Send(&app.Request{Command: app.SET, Args: []string{"foo", "bar"}})
+	if err != nil {
+		t.Fatalf("Failed to send SET: %v", err)
+	}
+
+	assert.NoError(t, errC)
+	assert.Equal(t, []string{"OK"}, resp)
+	cl.Close()
+
+	// send get to slave
+	cl2, errC := client.NewRedisClient("localhost:6790")
+	if err != nil {
+		t.Fatalf("Failed to connect to server: %v", err)
+	}
+	// send INFO
+	resp2, err := cl2.Send(&app.Request{Command: app.GET, Args: []string{"foo"}})
+	if err != nil {
+		t.Fatalf("Failed to send GET to slave: %v", err)
+	}
+
+	assert.NoError(t, errC)
+	assert.Equal(t, []string{"bar"}, resp2)
+	cl2.Close()
+	// Stop the slave
+	slave.Stop() // This method needs to be implemented in your server code
+
+	// Wait for slave to finish
+	<-doneSlave
+
+	master.Stop()
+	// Wait for master to finish
+	<-done
+}

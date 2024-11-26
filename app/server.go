@@ -24,7 +24,6 @@ type server struct {
 	Logger        hclog.Logger
 	ctx           context.Context
 	cancel        context.CancelFunc
-	masterConn    net.Conn
 }
 
 func NewServer(contextBack context.Context, config *Config, logger hclog.Logger) (*server, error) {
@@ -132,7 +131,6 @@ func (s *server) handhshakeWithMaster() error {
 		s.Logger.Error("Connection failed: %v", err)
 		return err
 	}
-	s.masterConn = conn
 	// start sending PING
 	err = sendRequestToServer(conn, &Request{
 		Command: PING,
@@ -172,21 +170,24 @@ func (s *server) propagateToReplicas(request *Request) error {
 		return nil
 	}
 	for _, replica := range s.Config.replicas {
-		err := sendRequestToServer(replica.conn, request)
+		// establish connection to replica
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%s", replica.Port))
+		if err != nil {
+			return fmt.Errorf("Failed to connect to replica %v", err)
+		}
+		err = sendRequestToServer(conn, request)
 		if err != nil {
 			return fmt.Errorf("error propagating to replica %v", err)
+		}
+		err = conn.Close()
+		if err != nil {
+			return fmt.Errorf("Failed to close connection to replica %v", err)
 		}
 	}
 	return nil
 }
 
 func (s *server) Stop() {
-	if s.masterConn != nil {
-		err := s.masterConn.Close()
-		if err != nil {
-			s.Logger.Error("Failed to close connection to master %v", err)
-		}
-	}
 	err := s.Listener.Close()
 	if err != nil {
 		s.Logger.Error("Failed to close listener %v", err)
