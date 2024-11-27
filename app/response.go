@@ -42,6 +42,7 @@ func (s *server) generateResponses(conn net.Conn) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		s.Logger.Info("received set request %v", req)
 		err = s.propagateToReplicas(req)
 		if err != nil {
 			return nil, fmt.Errorf("error propagating to replicas %v", err)

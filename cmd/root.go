@@ -10,6 +10,8 @@ import (
 func init() {
 	rootCmd.AddCommand(serverStartCmd)
 	rootCmd.AddCommand(readRdbCmd)
+	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(getCmd)
 }
 
 var rootCmd = &cobra.Command{
