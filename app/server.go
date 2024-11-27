@@ -171,7 +171,7 @@ func (s *server) propagateToReplicas(request *Request) error {
 	}
 	for _, replica := range s.Config.replicas {
 		// establish connection to replica
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%s", replica.Port))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", replica.Host, replica.Port))
 		if err != nil {
 			return fmt.Errorf("Failed to connect to replica %v", err)
 		}

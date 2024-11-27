@@ -74,7 +74,10 @@ func (s *server) generateResponses(conn net.Conn) ([]string, error) {
 	case REPLCONF:
 		// if it's a listening port save replica
 		if slices.Contains(req.Args, "listening-port") {
+			// extract the address
+			addr := strings.Split(conn.RemoteAddr().String(), ":")
 			s.Config.replicas = append(s.Config.replicas, &Replica{
+				Host: addr[0],
 				Port: req.Args[1],
 			})
 		}
