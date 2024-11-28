@@ -131,6 +131,7 @@ func (s *server) handhshakeWithMaster() error {
 		s.Logger.Error("Connection failed: %v", err)
 		return err
 	}
+	defer conn.Close()
 	// start sending PING
 	err = sendRequestToServer(conn, &Request{
 		Command: PING,
