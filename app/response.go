@@ -75,10 +75,22 @@ func (s *server) generateResponses(conn net.Conn) ([]string, error) {
 	case REPLCONF:
 		// if it's a listening port save replica
 		if slices.Contains(req.Args, "listening-port") {
-			// extract the address
-			addr := strings.Split(conn.RemoteAddr().String(), ":")
+			// TODO - extract the address
+			var replicaHost string
+			// handle ipv6 address
+			ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+			if err != nil {
+				return nil, fmt.Errorf("error getting remote address %v", err)
+			}
+			parsedIp := net.ParseIP(ip)
+			if parsedIp.To4() == nil || ip == "localhost" {
+				replicaHost = fmt.Sprintf("[%s]", ip)
+			} else {
+				replicaHost = ip
+			}
+
 			s.Config.replicas = append(s.Config.replicas, &Replica{
-				Host: addr[0],
+				Host: replicaHost,
 				Port: req.Args[1],
 			})
 		}

@@ -3,6 +3,7 @@ package app
 type Config struct {
 	Dir        string
 	DbFilename string
+	Host       string
 	Port       string
 	ReplicaOf  *string
 	replicas   []*Replica

@@ -58,7 +58,7 @@ func (s *server) RunServer() error {
 
 	// Uncomment this block to pass the first stage
 
-	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", s.Config.Port))
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%s", s.Config.Host, s.Config.Port))
 	if err != nil {
 		s.Logger.Error("Failed to bind to port %s", s.Config.Port)
 		return err
@@ -125,6 +125,8 @@ func (s *server) handhshakeWithMaster() error {
 	}
 	// compose address since replica of is separated
 	serverAddr := strings.Join(strings.Split(*s.Config.ReplicaOf, " "), ":")
+	// TODO - remove below
+	fmt.Println("connecting to master", serverAddr)
 	// Connect to the TCP server and keep the connection open
 	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {

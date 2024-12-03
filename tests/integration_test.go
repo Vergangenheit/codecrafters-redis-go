@@ -1108,6 +1108,7 @@ func Test_PropagateSet(t *testing.T) {
 
 func Test_ReplicaRespondToGet(t *testing.T) {
 	configMaster := &app.Config{
+		Host: "[::1]",
 		Port: "6382",
 	}
 	master, err := app.NewServer(context.Background(), configMaster, hclog.NewNullLogger())
@@ -1128,8 +1129,9 @@ func Test_ReplicaRespondToGet(t *testing.T) {
 	}()
 
 	config := &app.Config{
+		Host:      "[::1]",
 		Port:      "6790",
-		ReplicaOf: ToPtr("localhost:6382"),
+		ReplicaOf: ToPtr("[::1]:6382"),
 	}
 	slave, err := app.NewServer(context.Background(), config, hclog.NewNullLogger())
 	if err != nil {
@@ -1151,10 +1153,10 @@ func Test_ReplicaRespondToGet(t *testing.T) {
 	// Allow server to start
 	time.Sleep(100 * time.Millisecond)
 
-	// Test client connection
-	cl, errC := client.NewRedisClient("localhost:6382")
+	// client connection to master
+	cl, errC := client.NewRedisClient("[::1]:6382")
 	if err != nil {
-		t.Fatalf("Failed to connect to server: %v", err)
+		t.Fatalf("Failed to connect to master server: %v", err)
 	}
 	// send INFO
 	resp, err := cl.Send(&app.Request{Command: app.SET, Args: []string{"foo", "bar"}})
@@ -1166,12 +1168,14 @@ func Test_ReplicaRespondToGet(t *testing.T) {
 	assert.Equal(t, []string{"OK"}, resp)
 	cl.Close()
 
+	time.Sleep(100 * time.Millisecond)
+
 	// send get to slave
-	cl2, errC := client.NewRedisClient("localhost:6790")
+	cl2, errC := client.NewRedisClient("[::1]:6790")
 	if err != nil {
-		t.Fatalf("Failed to connect to server: %v", err)
+		t.Fatalf("Failed to connect to slave server: %v", err)
 	}
-	// send INFO
+	// send GET
 	resp2, err := cl2.Send(&app.Request{Command: app.GET, Args: []string{"foo"}})
 	if err != nil {
 		t.Fatalf("Failed to send GET to slave: %v", err)
